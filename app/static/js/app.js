@@ -882,6 +882,33 @@ function closeExecModal() {
     document.getElementById('execModal').classList.add('hidden');
 }
 
+const DIAGNOSTIC_PRESETS = {
+    uptime: "uptime; cat /proc/loadavg",
+    free: "free -h",
+    df: "df -h",
+    failed_services: "systemctl --failed",
+    docker_ps: "docker ps -a 2>/dev/null || echo 'Docker not active'",
+    ports: "ss -tulpn | head -n 15",
+    count_postgres: "ps -ef | grep postgres | wc -l",
+    kill_trans: "ps -ef|grep trans|grep -v grep|awk '{print $2}'|xargs kill",
+    kill_idle: "ps -ef|grep idle|grep -v grep|awk '{print $2}'|xargs kill"
+};
+
+function runPresetCmd(key, isDangerous = false) {
+    const cmd = DIAGNOSTIC_PRESETS[key];
+    if (!cmd) return;
+
+    if (isDangerous) {
+        if (!confirm(`Warning: Are you sure you want to execute this command on the remote server?\n\n$ ${cmd}`)) {
+            document.getElementById('execCommandInput').value = cmd;
+            return;
+        }
+    }
+
+    document.getElementById('execCommandInput').value = cmd;
+    runCommand(new Event('submit'));
+}
+
 function setExecCmd(cmd) {
     document.getElementById('execCommandInput').value = cmd;
     runCommand(new Event('submit'));

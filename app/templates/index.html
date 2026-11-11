@@ -437,15 +437,31 @@
             <!-- Modal Content -->
             <div class="p-6 space-y-4">
                 <!-- Preset Quick Buttons -->
-                <div>
-                    <span class="text-xs text-slate-400 font-medium block mb-2">Preset Diagnostics:</span>
+                <div class="space-y-2">
+                    <span class="text-xs text-slate-400 font-medium block">Preset Diagnostics & Actions:</span>
                     <div class="flex flex-wrap gap-2">
-                        <button onclick="setExecCmd('uptime; cat /proc/loadavg')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">uptime</button>
-                        <button onclick="setExecCmd('free -h')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">free -h</button>
-                        <button onclick="setExecCmd('df -h')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">df -h</button>
-                        <button onclick="setExecCmd('systemctl --failed')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">failed services</button>
-                        <button onclick="setExecCmd('docker ps -a 2>/dev/null || echo \'Docker not active\'')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">docker ps</button>
-                        <button onclick="setExecCmd('ss -tulpn | head -n 15')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">ports (ss)</button>
+                        <button type="button" onclick="runPresetCmd('uptime')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">uptime</button>
+                        <button type="button" onclick="runPresetCmd('free')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">free -h</button>
+                        <button type="button" onclick="runPresetCmd('df')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">df -h</button>
+                        <button type="button" onclick="runPresetCmd('failed_services')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">failed services</button>
+                        <button type="button" onclick="runPresetCmd('docker_ps')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">docker ps</button>
+                        <button type="button" onclick="runPresetCmd('ports')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-darkborder font-mono">ports (ss)</button>
+                        
+                        <!-- PostgreSQL process counter -->
+                        <button type="button" onclick="runPresetCmd('count_postgres')" class="px-2.5 py-1 text-xs rounded bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-700/50 font-mono flex items-center gap-1.5" title="ps -ef | grep postgres | wc -l">
+                            <i class="fa-solid fa-database text-[11px] text-blue-400"></i>
+                            <span>count postgres</span>
+                        </button>
+                        
+                        <!-- Kill Process Actions -->
+                        <button type="button" onclick="runPresetCmd('kill_trans', true)" class="px-2.5 py-1 text-xs rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 font-mono flex items-center gap-1.5" title="ps -ef|grep trans|grep -v grep|awk '{print $2}'|xargs kill">
+                            <i class="fa-solid fa-skull text-[11px] text-rose-400"></i>
+                            <span>kill 'trans'</span>
+                        </button>
+                        <button type="button" onclick="runPresetCmd('kill_idle', true)" class="px-2.5 py-1 text-xs rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 font-mono flex items-center gap-1.5" title="ps -ef|grep idle|grep -v grep|awk '{print $2}'|xargs kill">
+                            <i class="fa-solid fa-skull text-[11px] text-rose-400"></i>
+                            <span>kill 'idle'</span>
+                        </button>
                     </div>
                 </div>
 
