@@ -97,6 +97,18 @@ async def serve_dashboard(request: Request):
         }
     )
 
+# Web GUI Quick Commands Cheat Sheet Endpoint
+@app.get("/commands", response_class=HTMLResponse)
+async def serve_commands(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="commands.html",
+        context={
+            "app_name": settings.APP_NAME,
+            "port": settings.PORT
+        }
+    )
+
 # API: Overview Statistics
 @app.get("/api/stats/overview")
 async def get_overview_stats(db: Session = Depends(get_db)):

@@ -15,6 +15,13 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertIn("SSH Linux Monitor", response.text)
         self.assertIn("autoRefreshInterval", response.text)
 
+    def test_commands_page(self):
+        response = self.client.get("/commands")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("PostgreSQL & Linux Quick Commands", response.text)
+        self.assertIn("ps -ef | grep postgres", response.text)
+        self.assertIn("autovacuum", response.text)
+
     def test_overview_stats(self):
         response = self.client.get("/api/stats/overview")
         self.assertEqual(response.status_code, 200)

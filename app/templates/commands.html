@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL & Linux Commands - {{ app_name }}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f172a',
+                        darkcard: '#1e293b',
+                        darkcardhover: '#283548',
+                        darkborder: '#334155',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-30 bg-darkcard/80 backdrop-blur-md border-b border-darkborder px-4 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+            <a href="/" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-colors border border-darkborder" title="Kembali ke Dashboard">
+                <i class="fa-solid fa-arrow-left text-base"></i>
+            </a>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                    <i class="fa-solid fa-terminal text-indigo-400"></i>
+                    PostgreSQL & Linux Quick Commands
+                </h1>
+                <p class="text-xs text-slate-400">Daftar perintah cepat untuk monitoring dan manajemen proses server</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="/" class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-server"></i>
+                <span>Kembali ke Dashboard</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-5xl mx-auto px-4 lg:px-8 py-8 space-y-6">
+
+        <!-- Info / Tip Banner -->
+        <div class="bg-indigo-950/30 border border-indigo-500/30 rounded-2xl p-4.5 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <i class="fa-solid fa-lightbulb text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-white">Panduan Penggunaan Perintah</h3>
+                    <p class="text-xs text-slate-300 mt-0.5">
+                        Klik tombol <span class="text-indigo-400 font-semibold font-mono">Copy</span> pada masing-masing perintah di bawah ini, lalu tempelkan langsung ke terminal SSH server Anda atau jalankan melalui modal <strong>SSH Diagnostics</strong> di dashboard.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Toggle Sudo Suffix Option -->
+            <div class="shrink-0 flex items-center gap-2 bg-slate-900/80 px-3 py-2 rounded-xl border border-darkborder">
+                <input type="checkbox" id="toggleSudoPrefix" onchange="toggleSudoInCommands(this.checked)" class="rounded text-indigo-600 focus:ring-0 cursor-pointer">
+                <label for="toggleSudoPrefix" class="text-xs font-semibold text-slate-200 cursor-pointer flex items-center gap-1.5">
+                    <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                    <span>Tambahkan `sudo`</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="text" id="searchCmdInput" oninput="filterCommands()" placeholder="Cari perintah (contoh: postgres, trans, autovacuum, select, kill)..." 
+                   class="w-full pl-10 pr-4 py-2.5 bg-darkcard border border-darkborder rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors shadow-sm">
+        </div>
+
+        <!-- Commands Grid / List -->
+        <div class="space-y-4" id="commandsContainer">
+
+            <!-- 1. ps -ef | grep postgres -->
+            <div class="command-card bg-darkcard border border-darkborder hover:border-slate-600 transition-all rounded-2xl p-5 shadow-sm space-y-3" data-keywords="postgres ps process list monitoring">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-database"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-bold text-white">Lihat Semua Proses PostgreSQL</h3>
+                            <p class="text-xs text-slate-400">Menampilkan seluruh background worker, master daemon, dan client backend connection aktif.</p>
+                        </div>
+                    </div>
+                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Monitoring</span>
+                </div>
+
+                <div class="relative bg-slate-900 border border-darkborder rounded-xl p-3 flex items-center justify-between gap-3">
+                    <code class="text-xs font-mono text-emerald-400 overflow-x-auto whitespace-nowrap cmd-text" data-base="ps -ef | grep postgres">ps -ef | grep postgres</code>
+                    <button onclick="copyCommand(this)" class="shrink-0 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg text-xs font-medium border border-darkborder flex items-center gap-1.5 transition-all">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copy</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. ps -ef | grep postgres | wc -l -->
+            <div class="command-card bg-darkcard border border-darkborder hover:border-slate-600 transition-all rounded-2xl p-5 shadow-sm space-y-3" data-keywords="postgres count wc -l connection total">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-calculator"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-bold text-white">Hitung Jumlah Koneksi / Proses PostgreSQL</h3>
+                            <p class="text-xs text-slate-400">Menghitung total session atau background process PostgreSQL yang sedang aktif.</p>
+                        </div>
+                    </div>
+                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Count / Statistik</span>
+                </div>
+
+                <div class="relative bg-slate-900 border border-darkborder rounded-xl p-3 flex items-center justify-between gap-3">
+                    <code class="text-xs font-mono text-emerald-400 overflow-x-auto whitespace-nowrap cmd-text" data-base="ps -ef | grep postgres | wc -l">ps -ef | grep postgres | wc -l</code>
+                    <button onclick="copyCommand(this)" class="shrink-0 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg text-xs font-medium border border-darkborder flex items-center gap-1.5 transition-all">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copy</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. Kill autovacuum -->
+            <div class="command-card bg-darkcard border border-darkborder hover:border-slate-600 transition-all rounded-2xl p-5 shadow-sm space-y-3" data-keywords="autovacuum kill postgres vacuum maintenance">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-broom"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-bold text-white">Kill Proses Autovacuum</h3>
+                            <p class="text-xs text-slate-400">Menghentikan worker autovacuum yang sedang berjalan saat membebani resource CPU / disk I/O tinggi.</p>
+                        </div>
+                    </div>
+                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Kill Worker</span>
+                </div>
+
+                <div class="relative bg-slate-900 border border-darkborder rounded-xl p-3 flex items-center justify-between gap-3">
+                    <code class="text-xs font-mono text-emerald-400 overflow-x-auto whitespace-nowrap cmd-text" data-base="ps -ef|grep autovacuum|grep -v grep|awk '{print $2}'|xargs kill">ps -ef|grep autovacuum|grep -v grep|awk '{print $2}'|xargs kill</code>
+                    <button onclick="copyCommand(this)" class="shrink-0 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg text-xs font-medium border border-darkborder flex items-center gap-1.5 transition-all">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copy</span>
+                    </button>
+                </div>
+                <div class="text-[11px] text-slate-400 flex items-center gap-1.5 pl-1">
+                    <i class="fa-solid fa-circle-info text-indigo-400"></i>
+                    <span>Versi aman tanpa error jika tidak ada proses: </span>
+                    <button onclick="copyCustom(this, 'ps -ef | grep autovacuum | grep -v grep | awk \'{print $2}\' | xargs -r kill')" class="font-mono text-indigo-400 hover:underline">Copy opsi `xargs -r kill`</button>
+                </div>
+            </div>
+
+            <!-- 4. Kill trans -->
+            <div class="command-card bg-darkcard border border-darkborder hover:border-slate-600 transition-all rounded-2xl p-5 shadow-sm space-y-3" data-keywords="trans transaction idle in transaction kill postgres">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-bold text-white">Kill Proses Transaksi (trans)</h3>
+                            <p class="text-xs text-slate-400">Menghentikan koneksi PostgreSQL yang statusnya transaksi aktif atau menggantung (idle in transaction).</p>
+                        </div>
+                    </div>
+                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">Kill Transaction</span>
+                </div>
+
+                <div class="relative bg-slate-900 border border-darkborder rounded-xl p-3 flex items-center justify-between gap-3">
+                    <code class="text-xs font-mono text-emerald-400 overflow-x-auto whitespace-nowrap cmd-text" data-base="ps -ef|grep trans|grep -v grep|awk '{print $2}'|xargs kill">ps -ef|grep trans|grep -v grep|awk '{print $2}'|xargs kill</code>
+                    <button onclick="copyCommand(this)" class="shrink-0 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg text-xs font-medium border border-darkborder flex items-center gap-1.5 transition-all">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copy</span>
+                    </button>
+                </div>
+                <div class="text-[11px] text-slate-400 flex items-center gap-1.5 pl-1">
+                    <i class="fa-solid fa-circle-info text-indigo-400"></i>
+                    <span>Versi aman tanpa error jika tidak ada proses: </span>
+                    <button onclick="copyCustom(this, 'ps -ef | grep postgres | grep trans | grep -v grep | awk \'{print $2}\' | xargs -r kill')" class="font-mono text-indigo-400 hover:underline">Copy opsi `xargs -r kill`</button>
+                </div>
+            </div>
+
+            <!-- 5. Kill SELECT -->
+            <div class="command-card bg-darkcard border border-darkborder hover:border-slate-600 transition-all rounded-2xl p-5 shadow-sm space-y-3" data-keywords="select query query hang kill read query">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-bolt"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-bold text-white">Kill Query SELECT yang Menggantung</h3>
+                            <p class="text-xs text-slate-400">Menghentikan query pembacaan data `SELECT` yang macet atau membebani database terlalu lama.</p>
+                        </div>
+                    </div>
+                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">Kill Query</span>
+                </div>
+
+                <div class="relative bg-slate-900 border border-darkborder rounded-xl p-3 flex items-center justify-between gap-3">
+                    <code class="text-xs font-mono text-emerald-400 overflow-x-auto whitespace-nowrap cmd-text" data-base="ps -ef|grep SELECT|grep -v grep|awk '{print $2}'|xargs kill">ps -ef|grep SELECT|grep -v grep|awk '{print $2}'|xargs kill</code>
+                    <button onclick="copyCommand(this)" class="shrink-0 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg text-xs font-medium border border-darkborder flex items-center gap-1.5 transition-all">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copy</span>
+                    </button>
+                </div>
+                <div class="text-[11px] text-slate-400 flex items-center gap-1.5 pl-1">
+                    <i class="fa-solid fa-circle-info text-indigo-400"></i>
+                    <span>Versi aman tanpa error jika tidak ada proses: </span>
+                    <button onclick="copyCustom(this, 'ps -ef | grep postgres | grep SELECT | grep -v grep | awk \'{print $2}\' | xargs -r kill')" class="font-mono text-indigo-400 hover:underline">Copy opsi `xargs -r kill`</button>
+                </div>
+            </div>
+
+            <!-- 6. Kill mis -->
+            <div class="command-card bg-darkcard border border-darkborder hover:border-slate-600 transition-all rounded-2xl p-5 shadow-sm space-y-3" data-keywords="mis job reporting kill process">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-gear"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-bold text-white">Kill Proses MIS</h3>
+                            <p class="text-xs text-slate-400">Menghentikan seluruh session atau background process yang berkaitan dengan aplikasi / job `mis`.</p>
+                        </div>
+                    </div>
+                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Kill App Job</span>
+                </div>
+
+                <div class="relative bg-slate-900 border border-darkborder rounded-xl p-3 flex items-center justify-between gap-3">
+                    <code class="text-xs font-mono text-emerald-400 overflow-x-auto whitespace-nowrap cmd-text" data-base="ps -ef|grep mis|grep -v grep|awk '{print $2}'|xargs kill">ps -ef|grep mis|grep -v grep|awk '{print $2}'|xargs kill</code>
+                    <button onclick="copyCommand(this)" class="shrink-0 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg text-xs font-medium border border-darkborder flex items-center gap-1.5 transition-all">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copy</span>
+                    </button>
+                </div>
+                <div class="text-[11px] text-slate-400 flex items-center gap-1.5 pl-1">
+                    <i class="fa-solid fa-circle-info text-indigo-400"></i>
+                    <span>Versi aman tanpa error jika tidak ada proses: </span>
+                    <button onclick="copyCustom(this, 'ps -ef | grep mis | grep -v grep | awk \'{print $2}\' | xargs -r kill')" class="font-mono text-indigo-400 hover:underline">Copy opsi `xargs -r kill`</button>
+                </div>
+            </div>
+
+            <!-- 7. Kill idle (Bonus reference) -->
+            <div class="command-card bg-darkcard border border-darkborder hover:border-slate-600 transition-all rounded-2xl p-5 shadow-sm space-y-3" data-keywords="idle postgres connection client kill">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-pause"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-bold text-white">Kill Proses Idle PostgreSQL</h3>
+                            <p class="text-xs text-slate-400">Menghentikan koneksi client PostgreSQL yang sedang dalam keadaan `idle`.</p>
+                        </div>
+                    </div>
+                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Kill Idle</span>
+                </div>
+
+                <div class="relative bg-slate-900 border border-darkborder rounded-xl p-3 flex items-center justify-between gap-3">
+                    <code class="text-xs font-mono text-emerald-400 overflow-x-auto whitespace-nowrap cmd-text" data-base="ps -ef | grep postgres | grep idle | grep -v grep | awk '{print $2}' | xargs -r kill">ps -ef | grep postgres | grep idle | grep -v grep | awk '{print $2}' | xargs -r kill</code>
+                    <button onclick="copyCommand(this)" class="shrink-0 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg text-xs font-medium border border-darkborder flex items-center gap-1.5 transition-all">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copy</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Empty search result -->
+        <div id="noResult" class="hidden text-center py-12 bg-darkcard rounded-2xl border border-darkborder">
+            <i class="fa-solid fa-magnifying-glass text-2xl text-slate-500 mb-2"></i>
+            <p class="text-sm text-slate-400">Tidak ada perintah yang cocok dengan kata kunci pencarian Anda.</p>
+        </div>
+
+    </main>
+
+    <!-- Notification Toast Container -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+
+    <script>
+        // Copy command logic
+        function copyCommand(btn) {
+            const container = btn.closest('.command-card');
+            const codeEl = container.querySelector('.cmd-text');
+            const textToCopy = codeEl.innerText.trim();
+            executeCopy(btn, textToCopy);
+        }
+
+        function copyCustom(btn, text) {
+            const isSudo = document.getElementById('toggleSudoPrefix')?.checked || false;
+            let finalCmd = text;
+            if (isSudo) {
+                // If it contains | xargs, convert to xargs sudo kill
+                if (finalCmd.includes('| xargs')) {
+                    finalCmd = finalCmd.replace('| xargs', '| xargs sudo');
+                } else {
+                    finalCmd = 'sudo ' + finalCmd;
+                }
+            }
+            executeCopy(btn, finalCmd);
+        }
+
+        function executeCopy(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> <span class="text-emerald-400">Copied!</span>`;
+                btn.classList.add('border-emerald-500/50', 'bg-emerald-950/30');
+
+                showToast('Perintah berhasil disalin ke clipboard!', 'success');
+
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('border-emerald-500/50', 'bg-emerald-950/30');
+                }, 2000);
+            }).catch(err => {
+                showToast('Gagal menyalin: ' + err, 'error');
+            });
+        }
+
+        // Toggle sudo prefix
+        function toggleSudoInCommands(isSudo) {
+            document.querySelectorAll('.cmd-text').forEach(el => {
+                const base = el.getAttribute('data-base');
+                if (!base) return;
+                if (isSudo) {
+                    if (base.includes('| xargs')) {
+                        el.innerText = base.replace('| xargs', '| xargs sudo');
+                    } else {
+                        el.innerText = 'sudo ' + base;
+                    }
+                } else {
+                    el.innerText = base;
+                }
+            });
+            showToast(isSudo ? 'Prefix sudo diaktifkan untuk perintah' : 'Prefix sudo dinonaktifkan', 'info');
+        }
+
+        // Filter commands
+        function filterCommands() {
+            const query = (document.getElementById('searchCmdInput').value || '').toLowerCase().trim();
+            const cards = document.querySelectorAll('.command-card');
+            let matchCount = 0;
+
+            cards.forEach(card => {
+                const keywords = card.getAttribute('data-keywords') || '';
+                const text = card.innerText.toLowerCase();
+                if (!query || keywords.includes(query) || text.includes(query)) {
+                    card.classList.remove('hidden');
+                    matchCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            const noResult = document.getElementById('noResult');
+            if (matchCount === 0) {
+                noResult.classList.remove('hidden');
+            } else {
+                noResult.classList.add('hidden');
+            }
+        }
+
+        // Toast notification helper
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-emerald-600 text-white border-emerald-500',
+                error: 'bg-rose-600 text-white border-rose-500',
+                info: 'bg-slate-800 text-slate-200 border-slate-700',
+            };
+            const icons = {
+                success: 'fa-circle-check',
+                error: 'fa-circle-xmark',
+                info: 'fa-circle-info',
+            };
+
+            toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl text-xs font-medium transition-all transform translate-y-2 opacity-0 duration-300 ${colors[type] || colors.info}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icons[type] || icons.info} text-sm"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
