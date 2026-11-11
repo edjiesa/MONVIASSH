@@ -32,13 +32,13 @@ echo "---SECTION_MEM---"
 cat /proc/meminfo 2>/dev/null
 
 echo "---SECTION_DISK---"
-df -k -P 2>/dev/null
+df -k -P 2>/dev/null || df -k 2>/dev/null
 
 echo "---SECTION_NET---"
 cat /proc/net/dev 2>/dev/null
 
 echo "---SECTION_PROCS---"
-ps -eo pid,user,%cpu,%mem,comm --sort=-%cpu 2>/dev/null | head -n 11
+ps -eo pid,user,%cpu,%mem,comm --sort=-%cpu 2>/dev/null | head -n 15 || ps -eo pid,user,%cpu,%mem,comm 2>/dev/null | head -n 15 || ps aux 2>/dev/null | head -n 15
 
 echo "---SECTION_CPUSTAT1---"
 grep '^cpu ' /proc/stat 2>/dev/null
@@ -326,21 +326,26 @@ def parse_collector_output(output: str, prev_metric: dict | None = None) -> dict
     disk_sec = sections.get("SECTION_DISK", "").strip()
     if disk_sec:
         skip_types = ("tmpfs", "devtmpfs", "none", "squashfs", "udev", "overlay", "shm")
-        for line in disk_sec.splitlines()[1:]:
+        for line in disk_sec.splitlines():
+            line = line.strip()
+            if not line or "Filesystem" in line:
+                continue
             parts = line.split()
             if len(parts) >= 6:
                 fs = parts[0]
-                if any(st in fs for st in skip_types):
+                if any(st in fs.lower() for st in skip_types):
                     continue
                 try:
                     tot_kb = float(parts[1])
                     usd_kb = float(parts[2])
                     avail_kb = float(parts[3])
                     pct_str = parts[4].rstrip("%")
-                    pct = float(pct_str) if pct_str.replace(".", "").isdigit() else 0.0
-                    mount = parts[5]
+                    try:
+                        pct = float(pct_str.replace(",", "."))
+                    except Exception:
+                        pct = 0.0
+                    mount = " ".join(parts[5:])
 
-                    # Filter duplicate mounts/binds if already seen
                     partitions.append({
                         "filesystem": fs,
                         "mount": mount,
@@ -397,19 +402,39 @@ def parse_collector_output(output: str, prev_metric: dict | None = None) -> dict
     procs_sec = sections.get("SECTION_PROCS", "").strip()
     if procs_sec:
         lines = procs_sec.splitlines()
-        for line in lines[1:11]: # skip header
+        for line in lines:
+            line = line.strip()
+            if not line or "PID" in line or "COMMAND" in line:
+                continue
             parts = line.split(None, 4)
             if len(parts) >= 5:
                 try:
+                    cpu_val = float(parts[2].replace(",", "."))
+                    mem_val = float(parts[3].replace(",", "."))
                     processes.append({
                         "pid": parts[0],
                         "user": parts[1],
-                        "cpu": float(parts[2]),
-                        "mem": float(parts[3]),
-                        "command": parts[4]
+                        "cpu": cpu_val,
+                        "mem": mem_val,
+                        "command": parts[4].strip()
                     })
                 except Exception:
-                    pass
+                    continue
+            elif len(parts) >= 4:
+                try:
+                    cpu_val = float(parts[2].replace(",", "."))
+                    mem_val = float(parts[3].replace(",", "."))
+                    processes.append({
+                        "pid": parts[0],
+                        "user": parts[1],
+                        "cpu": cpu_val,
+                        "mem": mem_val,
+                        "command": "-"
+                    })
+                except Exception:
+                    continue
+            if len(processes) >= 10:
+                break
 
     return {
         "os_name": os_name,

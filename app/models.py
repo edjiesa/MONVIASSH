@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Text
 from sqlalchemy.orm import relationship
@@ -83,6 +84,14 @@ class Server(Base):
             "latest_metric": latest_metric,
         }
 
+def safe_round(val, decimals=1, default=0.0):
+    if val is None:
+        return default
+    try:
+        return round(float(val), decimals)
+    except Exception:
+        return default
+
 class MetricRecord(Base):
     __tablename__ = "metric_records"
 
@@ -126,21 +135,21 @@ class MetricRecord(Base):
             "id": self.id,
             "server_id": self.server_id,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
-            "cpu_percent": round(self.cpu_percent, 1),
-            "ram_used_mb": round(self.ram_used_mb, 1),
-            "ram_total_mb": round(self.ram_total_mb, 1),
-            "ram_percent": round(self.ram_percent, 1),
-            "swap_used_mb": round(self.swap_used_mb, 1),
-            "swap_total_mb": round(self.swap_total_mb, 1),
-            "swap_percent": round(self.swap_percent, 1),
-            "disk_used_gb": round(self.disk_used_gb, 1),
-            "disk_total_gb": round(self.disk_total_gb, 1),
-            "disk_percent": round(self.disk_percent, 1),
-            "load_1m": round(self.load_1m, 2),
-            "load_5m": round(self.load_5m, 2),
-            "load_15m": round(self.load_15m, 2),
-            "net_rx_rate_kbps": round(self.net_rx_rate_kbps, 1),
-            "net_tx_rate_kbps": round(self.net_tx_rate_kbps, 1),
+            "cpu_percent": safe_round(self.cpu_percent, 1),
+            "ram_used_mb": safe_round(self.ram_used_mb, 1),
+            "ram_total_mb": safe_round(self.ram_total_mb, 1),
+            "ram_percent": safe_round(self.ram_percent, 1),
+            "swap_used_mb": safe_round(self.swap_used_mb, 1),
+            "swap_total_mb": safe_round(self.swap_total_mb, 1),
+            "swap_percent": safe_round(self.swap_percent, 1),
+            "disk_used_gb": safe_round(self.disk_used_gb, 1),
+            "disk_total_gb": safe_round(self.disk_total_gb, 1),
+            "disk_percent": safe_round(self.disk_percent, 1),
+            "load_1m": safe_round(self.load_1m, 2),
+            "load_5m": safe_round(self.load_5m, 2),
+            "load_15m": safe_round(self.load_15m, 2),
+            "net_rx_rate_kbps": safe_round(self.net_rx_rate_kbps, 1),
+            "net_tx_rate_kbps": safe_round(self.net_tx_rate_kbps, 1),
             "partitions": parsed_extra.get("partitions", []),
             "processes": parsed_extra.get("processes", []),
         }

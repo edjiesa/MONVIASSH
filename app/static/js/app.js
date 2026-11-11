@@ -647,11 +647,27 @@ async function deleteServer(serverId, serverName) {
 // ==================== DETAILS & CHARTS MODAL ====================
 async function openDetailsModal(serverId) {
     activeDetailServerId = serverId;
-    const server = allServers.find(s => s.id === serverId);
-    if (!server) return;
-
-    renderServerDetails(server);
+    
+    // Show cached server data first for instant response
+    const cached = allServers.find(s => s.id === serverId);
+    if (cached) {
+        renderServerDetails(cached);
+    }
     document.getElementById('detailsModal').classList.remove('hidden');
+
+    // Fetch fresh server data from API to get full latest metrics (partitions & processes)
+    try {
+        const res = await fetch(`/api/servers/${serverId}`);
+        if (res.ok) {
+            const fresh = await res.json();
+            renderServerDetails(fresh);
+            const idx = allServers.findIndex(s => s.id === serverId);
+            if (idx !== -1) allServers[idx] = fresh;
+        }
+    } catch (e) {
+        console.warn('Could not fetch fresh server details:', e);
+    }
+
     await loadServerMetricsCharts(serverId);
 }
 
@@ -666,8 +682,20 @@ async function refreshCurrentServerDetails() {
     if (icon) icon.classList.add('animate-spin');
 
     try {
-        await pollSingleServer(activeDetailServerId);
+        const res = await fetch(`/api/servers/${activeDetailServerId}/poll`, { method: 'POST' });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.server) {
+                renderServerDetails(data.server);
+                const idx = allServers.findIndex(s => s.id === activeDetailServerId);
+                if (idx !== -1) allServers[idx] = data.server;
+            }
+        }
         await loadServerMetricsCharts(activeDetailServerId);
+        await fetchAllData();
+        showToast('Server metrics refreshed', 'success');
+    } catch (err) {
+        showToast('Refresh error: ' + err.message, 'error');
     } finally {
         if (icon) icon.classList.remove('animate-spin');
     }
