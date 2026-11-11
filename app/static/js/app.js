@@ -268,7 +268,7 @@ function renderServerGrid() {
                                 </h3>
                                 <p class="text-xs text-slate-400 font-mono flex items-center gap-1">
                                     <span>${escapeHtml(server.host)}:${server.port}</span>
-                                    <button onclick="copyToClipboard('${escapeHtml(server.host)}')" title="Copy IP" class="text-slate-500 hover:text-slate-300">
+                                    <button onclick="copyToClipboard('${escapeHtml(server.host)}'); showToast('Host IP disalin: ${escapeHtml(server.host)}', 'info');" title="Copy IP" class="text-slate-500 hover:text-slate-300">
                                         <i class="fa-regular fa-copy text-[10px]"></i>
                                     </button>
                                 </p>
@@ -911,7 +911,10 @@ const DIAGNOSTIC_PRESETS = {
     ports: "ss -tulpn | head -n 15",
     count_postgres: "ps -ef | grep postgres | grep -v grep | wc -l",
     kill_trans: "pids=$(ps -ef | grep postgres | grep trans | grep -v grep | awk '{print $2}'); if [ -n \"$pids\" ]; then echo \"$pids\" | xargs -r kill && echo \"Terminated trans PID(s):\" && echo \"$pids\"; else echo \"No postgres trans processes found.\"; fi",
-    kill_idle: "pids=$(ps -ef | grep postgres | grep idle | grep -v grep | awk '{print $2}'); if [ -n \"$pids\" ]; then echo \"$pids\" | xargs -r kill && echo \"Terminated idle PID(s):\" && echo \"$pids\"; else echo \"No postgres idle processes found.\"; fi"
+    kill_idle: "pids=$(ps -ef | grep postgres | grep idle | grep -v grep | awk '{print $2}'); if [ -n \"$pids\" ]; then echo \"$pids\" | xargs -r kill && echo \"Terminated idle PID(s):\" && echo \"$pids\"; else echo \"No postgres idle processes found.\"; fi",
+    kill_autovacuum: "pids=$(ps -ef | grep autovacuum | grep -v grep | awk '{print $2}'); if [ -n \"$pids\" ]; then echo \"$pids\" | xargs -r kill && echo \"Terminated autovacuum PID(s):\" && echo \"$pids\"; else echo \"No autovacuum processes found.\"; fi",
+    kill_select: "pids=$(ps -ef | grep postgres | grep SELECT | grep -v grep | awk '{print $2}'); if [ -n \"$pids\" ]; then echo \"$pids\" | xargs -r kill && echo \"Terminated SELECT PID(s):\" && echo \"$pids\"; else echo \"No postgres SELECT processes found.\"; fi",
+    kill_mis: "pids=$(ps -ef | grep mis | grep -v grep | awk '{print $2}'); if [ -n \"$pids\" ]; then echo \"$pids\" | xargs -r kill && echo \"Terminated mis PID(s):\" && echo \"$pids\"; else echo \"No mis processes found.\"; fi"
 };
 
 function runPresetCmd(key, isDangerous = false) {
@@ -986,20 +989,46 @@ async function runCommand(event) {
 function copyTerminalOutput() {
     const text = document.getElementById('terminalOutput').innerText;
     copyToClipboard(text);
-    showToast('Terminal output copied to clipboard', 'info');
+    showToast('Terminal output berhasil disalin ke clipboard', 'success');
 }
 
-// Utility: Copy to Clipboard
+// Utility: Copy to Clipboard (Safe for HTTP and HTTPS)
 function copyToClipboard(text) {
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(text);
-    } else {
+    if (!text) return;
+
+    function fallbackExec(val) {
         const ta = document.createElement('textarea');
-        ta.value = text;
+        ta.value = val;
+        ta.style.position = 'fixed';
+        ta.style.top = '0';
+        ta.style.left = '0';
+        ta.style.width = '2em';
+        ta.style.height = '2em';
+        ta.style.padding = '0';
+        ta.style.border = 'none';
+        ta.style.outline = 'none';
+        ta.style.boxShadow = 'none';
+        ta.style.background = 'transparent';
+        ta.style.opacity = '0';
+        ta.setAttribute('readonly', '');
         document.body.appendChild(ta);
+        ta.focus();
         ta.select();
-        document.execCommand('copy');
-        ta.remove();
+        try {
+            ta.setSelectionRange(0, val.length);
+            document.execCommand('copy');
+        } catch (e) {
+            console.error('execCommand copy error:', e);
+        }
+        document.body.removeChild(ta);
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).catch(() => {
+            fallbackExec(text);
+        });
+    } else {
+        fallbackExec(text);
     }
 }
 

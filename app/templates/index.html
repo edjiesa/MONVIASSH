@@ -476,6 +476,25 @@
                             <i class="fa-solid fa-skull text-[11px] text-rose-400"></i>
                             <span>kill 'idle'</span>
                         </button>
+                        <button type="button" onclick="runPresetCmd('kill_autovacuum', true)" class="px-2.5 py-1 text-xs rounded bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-700/50 font-mono flex items-center gap-1.5" title="Kill running autovacuum workers">
+                            <i class="fa-solid fa-broom text-[11px] text-amber-400"></i>
+                            <span>kill 'autovacuum'</span>
+                        </button>
+                        <button type="button" onclick="runPresetCmd('kill_select', true)" class="px-2.5 py-1 text-xs rounded bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-700/50 font-mono flex items-center gap-1.5" title="Kill long running SELECT queries">
+                            <i class="fa-solid fa-bolt text-[11px] text-purple-400"></i>
+                            <span>kill 'SELECT'</span>
+                        </button>
+                        <button type="button" onclick="runPresetCmd('kill_mis', true)" class="px-2.5 py-1 text-xs rounded bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-700/50 font-mono flex items-center gap-1.5" title="Kill MIS process jobs">
+                            <i class="fa-solid fa-gear text-[11px] text-cyan-400"></i>
+                            <span>kill 'mis'</span>
+                        </button>
+                    </div>
+                    <div class="pt-1 flex items-center justify-between text-xs">
+                        <span class="text-slate-500 text-[11px]">Butuh daftar command lengkap & copy button?</span>
+                        <a href="/commands" target="_blank" class="text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-1.5 text-xs font-medium">
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            <span>Buka Halaman Cheat Sheet Perintah</span>
+                        </a>
                     </div>
                 </div>
 
