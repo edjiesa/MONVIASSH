@@ -462,11 +462,11 @@
                         </button>
                         
                         <!-- Kill Process Actions -->
-                        <button type="button" onclick="runPresetCmd('kill_trans', true)" class="px-2.5 py-1 text-xs rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 font-mono flex items-center gap-1.5" title="ps -ef|grep trans|grep -v grep|awk '{print $2}'|xargs kill">
+                        <button type="button" onclick="runPresetCmd('kill_trans', true)" class="px-2.5 py-1 text-xs rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 font-mono flex items-center gap-1.5" title="Kill idle/active PostgreSQL transactions">
                             <i class="fa-solid fa-skull text-[11px] text-rose-400"></i>
                             <span>kill 'trans'</span>
                         </button>
-                        <button type="button" onclick="runPresetCmd('kill_idle', true)" class="px-2.5 py-1 text-xs rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 font-mono flex items-center gap-1.5" title="ps -ef|grep idle|grep -v grep|awk '{print $2}'|xargs kill">
+                        <button type="button" onclick="runPresetCmd('kill_idle', true)" class="px-2.5 py-1 text-xs rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 font-mono flex items-center gap-1.5" title="Kill idle PostgreSQL connections">
                             <i class="fa-solid fa-skull text-[11px] text-rose-400"></i>
                             <span>kill 'idle'</span>
                         </button>

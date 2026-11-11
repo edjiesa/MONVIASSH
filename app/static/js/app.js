@@ -910,8 +910,8 @@ const DIAGNOSTIC_PRESETS = {
     docker_ps: "docker ps -a 2>/dev/null || echo 'Docker not active'",
     ports: "ss -tulpn | head -n 15",
     count_postgres: "ps -ef | grep postgres | grep -v grep | wc -l",
-    kill_trans: "ps -ef | grep trans | grep -v grep | awk '{print $2}' | xargs kill",
-    kill_idle: "ps -ef | grep idle | grep -v grep | grep -v '\\[' | awk '{print $2}' | xargs kill"
+    kill_trans: "pids=$(ps -ef | grep postgres | grep trans | grep -v grep | awk '{print $2}'); if [ -n \"$pids\" ]; then echo \"$pids\" | xargs -r kill && echo \"Terminated trans PID(s):\" && echo \"$pids\"; else echo \"No postgres trans processes found.\"; fi",
+    kill_idle: "pids=$(ps -ef | grep postgres | grep idle | grep -v grep | awk '{print $2}'); if [ -n \"$pids\" ]; then echo \"$pids\" | xargs -r kill && echo \"Terminated idle PID(s):\" && echo \"$pids\"; else echo \"No postgres idle processes found.\"; fi"
 };
 
 function runPresetCmd(key, isDangerous = false) {
