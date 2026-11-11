@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db, init_db
-from app.models import Server, MetricRecord
+from app.models import Server, MetricRecord, safe_round
 from app.crypto_utils import encrypt_secret
 from app.ssh_collector import test_ssh_connection, run_remote_command
 from app.scheduler import start_scheduler, stop_scheduler, poll_server_by_id
@@ -108,6 +108,103 @@ async def serve_commands(request: Request):
             "port": settings.PORT
         }
     )
+
+# Web GUI Standalone Disk Alert Endpoint (>80%)
+@app.get("/disks", response_class=HTMLResponse)
+async def serve_disks(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="disks.html",
+        context={
+            "app_name": settings.APP_NAME,
+            "port": settings.PORT
+        }
+    )
+
+# API: Aggregated Disk Alerts (>80% or custom threshold)
+@app.get("/api/disks/alerts")
+async def get_disk_alerts(
+    threshold: float = 80.0,
+    all_disks: bool = False,
+    db: Session = Depends(get_db)
+):
+    servers = db.query(Server).all()
+    disks = []
+    servers_affected = set()
+    critical_count = 0
+    warning_count = 0
+
+    for s in servers:
+        if not s.metrics:
+            continue
+        latest_metric = s.metrics[0]
+        metric_dict = latest_metric.to_dict()
+        partitions = metric_dict.get("partitions", [])
+
+        # If partitions array is empty but overall disk metrics exist:
+        if not partitions and latest_metric.disk_total_gb > 0:
+            partitions = [{
+                "filesystem": "root",
+                "mount": "/",
+                "total_gb": latest_metric.disk_total_gb,
+                "used_gb": latest_metric.disk_used_gb,
+                "free_gb": safe_round(latest_metric.disk_total_gb - latest_metric.disk_used_gb, 1),
+                "percent": latest_metric.disk_percent
+            }]
+
+        for p in partitions:
+            try:
+                pct = float(p.get("percent", 0.0))
+            except Exception:
+                pct = 0.0
+
+            is_alert = pct >= threshold
+
+            if pct >= 90.0:
+                level = "critical"
+            elif pct >= 80.0:
+                level = "warning"
+            else:
+                level = "normal"
+
+            if is_alert:
+                if level == "critical":
+                    critical_count += 1
+                elif level == "warning":
+                    warning_count += 1
+                servers_affected.add(s.id)
+
+            if all_disks or is_alert:
+                disks.append({
+                    "server_id": s.id,
+                    "server_name": s.name,
+                    "server_host": s.host,
+                    "server_port": s.port,
+                    "server_status": s.last_status,
+                    "os_name": s.os_name or "Linux",
+                    "hostname": s.hostname or s.name,
+                    "filesystem": p.get("filesystem", "unknown"),
+                    "mount": p.get("mount", "/"),
+                    "total_gb": p.get("total_gb", 0.0),
+                    "used_gb": p.get("used_gb", 0.0),
+                    "free_gb": p.get("free_gb", 0.0),
+                    "percent": pct,
+                    "level": level,
+                    "last_seen": s.last_seen.isoformat() if s.last_seen else None
+                })
+
+    # Sort disks by usage percent descending
+    disks.sort(key=lambda x: x["percent"], reverse=True)
+
+    return {
+        "threshold": threshold,
+        "total_alerts": critical_count + warning_count,
+        "critical_count": critical_count,
+        "warning_count": warning_count,
+        "total_servers_affected": len(servers_affected),
+        "total_servers": len(servers),
+        "disks": disks
+    }
 
 # API: Overview Statistics
 @app.get("/api/stats/overview")

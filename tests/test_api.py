@@ -22,6 +22,23 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertIn("ps -ef | grep postgres", response.text)
         self.assertIn("autovacuum", response.text)
 
+    def test_disks_page(self):
+        response = self.client.get("/disks")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Disk Alerts", response.text)
+        self.assertIn("Threshold &gt; 80%", response.text)
+
+    def test_disks_alerts_api(self):
+        response = self.client.get("/api/disks/alerts")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("threshold", data)
+        self.assertEqual(data["threshold"], 80.0)
+        self.assertIn("total_alerts", data)
+        self.assertIn("critical_count", data)
+        self.assertIn("warning_count", data)
+        self.assertIn("disks", data)
+
     def test_overview_stats(self):
         response = self.client.get("/api/stats/overview")
         self.assertEqual(response.status_code, 200)
