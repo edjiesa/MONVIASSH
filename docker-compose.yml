@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  ssh-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ssh-linux-monitor
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - HOST=0.0.0.0
+      - DATA_DIR=/app/data
+      - DEFAULT_POLL_INTERVAL=15
+      - SSH_TIMEOUT=10
+      - METRIC_HISTORY_LIMIT=60
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/stats/overview"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
