@@ -21,6 +21,7 @@ class Server(Base):
     password_encrypted = Column(Text, nullable=True)
     private_key_encrypted = Column(Text, nullable=True)
     key_passphrase_encrypted = Column(Text, nullable=True)
+    sudo_password_encrypted = Column(Text, nullable=True)
 
     poll_interval = Column(Integer, default=15)
     tags = Column(String(255), default="")
@@ -54,6 +55,12 @@ class Server(Base):
 
     def get_passphrase(self) -> str | None:
         return decrypt_secret(self.key_passphrase_encrypted)
+
+    def get_sudo_password(self) -> str | None:
+        dec = decrypt_secret(self.sudo_password_encrypted)
+        if dec:
+            return dec
+        return self.get_password()
 
     def to_dict(self, include_latest_metric: bool = True) -> dict:
         latest_metric = None

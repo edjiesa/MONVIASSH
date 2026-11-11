@@ -140,9 +140,10 @@ def test_ssh_connection(
 def run_remote_command(
     server,
     command: str,
-    timeout: int = 15
+    use_sudo: bool = False,
+    timeout: int = 20
 ) -> dict:
-    """Run an ad-hoc command on the remote server via SSH."""
+    """Run an ad-hoc command on the remote server via SSH, with optional sudo elevation."""
     try:
         client = create_ssh_client(
             host=server.host,
@@ -154,11 +155,33 @@ def run_remote_command(
             passphrase=server.get_passphrase(),
             timeout=settings.SSH_TIMEOUT
         )
-        stdin, stdout, stderr = client.exec_command(command, timeout=timeout)
+
+        sudo_pwd = server.get_sudo_password()
+
+        if use_sudo:
+            # -S reads password from stdin, -p '' suppresses prompt
+            # get_pty=True provides pseudo-terminal to satisfy sudo requiretty
+            escaped_cmd = command.replace("'", "'\"'\"'")
+            exec_str = f"sudo -S -p '' bash -c '{escaped_cmd}'"
+            stdin, stdout, stderr = client.exec_command(exec_str, get_pty=True, timeout=timeout)
+            if sudo_pwd:
+                try:
+                    stdin.write(sudo_pwd + "\n")
+                    stdin.flush()
+                except Exception:
+                    pass
+        else:
+            stdin, stdout, stderr = client.exec_command(command, timeout=timeout)
+
         out_str = stdout.read().decode("utf-8", errors="ignore")
         err_str = stderr.read().decode("utf-8", errors="ignore")
         exit_code = stdout.channel.recv_exit_status()
         client.close()
+
+        # Clean carriage returns from pty
+        out_str = out_str.replace("\r\n", "\n").replace("\r", "")
+        err_str = err_str.replace("\r\n", "\n").replace("\r", "")
+
         return {
             "success": exit_code == 0,
             "exit_code": exit_code,

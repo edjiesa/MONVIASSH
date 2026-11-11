@@ -416,6 +416,7 @@ async function pollSingleServer(serverId, btnElement) {
 function openServerModal(isEdit = false) {
     document.getElementById('serverForm').reset();
     document.getElementById('serverId').value = '';
+    document.getElementById('serverSudoPassword').value = '';
     document.getElementById('testConnResult').classList.add('hidden');
     document.getElementById('modalTitle').innerHTML = `
         <i class="fa-solid fa-server text-indigo-400"></i>
@@ -438,6 +439,7 @@ function openEditServerModal(serverId) {
     document.getElementById('serverUsername').value = server.username;
     document.getElementById('serverPollInterval').value = server.poll_interval || 15;
     document.getElementById('serverTags').value = (server.tags || []).join(', ');
+    document.getElementById('serverSudoPassword').value = '';
 
     const authRadios = document.getElementsByName('authType');
     for (const r of authRadios) {
@@ -573,6 +575,7 @@ async function saveServer(event) {
     const password = document.getElementById('serverPassword').value;
     const privateKey = document.getElementById('serverPrivateKey').value;
     const passphrase = document.getElementById('serverPassphrase').value;
+    const sudoPassword = document.getElementById('serverSudoPassword').value;
 
     const payload = {
         name,
@@ -587,6 +590,7 @@ async function saveServer(event) {
     if (password) payload.password = password;
     if (privateKey) payload.private_key = privateKey;
     if (passphrase) payload.passphrase = passphrase;
+    if (sudoPassword) payload.sudo_password = sudoPassword;
 
     const btn = document.getElementById('btnSubmitServer');
     btn.disabled = true;
@@ -882,6 +886,22 @@ function closeExecModal() {
     document.getElementById('execModal').classList.add('hidden');
 }
 
+function togglePromptSymbol(isSudo) {
+    const sym = document.getElementById('execPromptSymbol');
+    const note = document.getElementById('sudoStatusNote');
+    if (sym) {
+        if (isSudo) {
+            sym.innerText = '#';
+            sym.className = 'absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-mono text-sm font-bold';
+            if (note) note.innerText = 'Elevated execution enabled';
+        } else {
+            sym.innerText = '$';
+            sym.className = 'absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400 font-mono text-sm font-bold';
+            if (note) note.innerText = 'Standard user execution';
+        }
+    }
+}
+
 const DIAGNOSTIC_PRESETS = {
     uptime: "uptime; cat /proc/loadavg",
     free: "free -h",
@@ -889,9 +909,9 @@ const DIAGNOSTIC_PRESETS = {
     failed_services: "systemctl --failed",
     docker_ps: "docker ps -a 2>/dev/null || echo 'Docker not active'",
     ports: "ss -tulpn | head -n 15",
-    count_postgres: "ps -ef | grep postgres | wc -l",
-    kill_trans: "ps -ef|grep trans|grep -v grep|awk '{print $2}'|xargs kill",
-    kill_idle: "ps -ef|grep idle|grep -v grep|awk '{print $2}'|xargs kill"
+    count_postgres: "ps -ef | grep postgres | grep -v grep | wc -l",
+    kill_trans: "ps -ef | grep trans | grep -v grep | awk '{print $2}' | xargs kill",
+    kill_idle: "ps -ef | grep idle | grep -v grep | grep -v '\\[' | awk '{print $2}' | xargs kill"
 };
 
 function runPresetCmd(key, isDangerous = false) {
@@ -921,20 +941,24 @@ async function runCommand(event) {
     const cmd = document.getElementById('execCommandInput').value.trim();
     if (!cmd) return;
 
+    const useSudo = document.getElementById('execUseSudo')?.checked || false;
+    const promptText = useSudo ? 'sudo #' : '$';
+    const promptClass = useSudo ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold';
+
     const btn = document.getElementById('btnRunExec');
     const icon = document.getElementById('runExecIcon');
     const outputBox = document.getElementById('terminalOutput');
 
     btn.disabled = true;
     icon.className = 'fa-solid fa-spinner animate-spin';
-    outputBox.innerHTML += `\n<span class="text-emerald-400 font-bold">$ ${escapeHtml(cmd)}</span>\n<span class="text-slate-500">Executing...</span>`;
+    outputBox.innerHTML += `\n<span class="${promptClass}">${promptText} ${escapeHtml(cmd)}</span>\n<span class="text-slate-500">Executing...</span>`;
     outputBox.scrollTop = outputBox.scrollHeight;
 
     try {
         const res = await fetch(`/api/servers/${activeExecServerId}/exec`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: cmd })
+            body: JSON.stringify({ command: cmd, use_sudo: useSudo })
         });
 
         const data = await res.json();

@@ -54,6 +54,7 @@ class ServerCreateSchema(BaseModel):
     password: str | None = None
     private_key: str | None = None
     passphrase: str | None = None
+    sudo_password: str | None = None
     poll_interval: int = 15
     tags: str = ""
 
@@ -66,6 +67,7 @@ class ServerUpdateSchema(BaseModel):
     password: str | None = None
     private_key: str | None = None
     passphrase: str | None = None
+    sudo_password: str | None = None
     poll_interval: int | None = None
     tags: str | None = None
     is_active: bool | None = None
@@ -81,6 +83,7 @@ class TestConnectionSchema(BaseModel):
 
 class ExecCommandSchema(BaseModel):
     command: str
+    use_sudo: bool = False
 
 # Web GUI Endpoint
 @app.get("/", response_class=HTMLResponse)
@@ -128,7 +131,7 @@ async def list_servers(db: Session = Depends(get_db)):
     servers = db.query(Server).all()
     return [s.to_dict(include_latest_metric=True) for s in servers]
 
-# API: Create Server
+    # API: Create Server
 @app.post("/api/servers")
 async def create_server(data: ServerCreateSchema, db: Session = Depends(get_db)):
     server = Server(
@@ -140,6 +143,7 @@ async def create_server(data: ServerCreateSchema, db: Session = Depends(get_db))
         password_encrypted=encrypt_secret(data.password) if data.password else None,
         private_key_encrypted=encrypt_secret(data.private_key) if data.private_key else None,
         key_passphrase_encrypted=encrypt_secret(data.passphrase) if data.passphrase else None,
+        sudo_password_encrypted=encrypt_secret(data.sudo_password) if data.sudo_password else None,
         poll_interval=data.poll_interval,
         tags=data.tags.strip(),
         is_active=True
@@ -185,6 +189,8 @@ async def update_server(server_id: int, data: ServerUpdateSchema, db: Session = 
         server.private_key_encrypted = encrypt_secret(data.private_key)
     if data.passphrase is not None:
         server.key_passphrase_encrypted = encrypt_secret(data.passphrase)
+    if data.sudo_password is not None and data.sudo_password != "":
+        server.sudo_password_encrypted = encrypt_secret(data.sudo_password)
     if data.poll_interval is not None:
         server.poll_interval = data.poll_interval
     if data.tags is not None:
@@ -255,5 +261,5 @@ async def exec_server_command(server_id: int, data: ExecCommandSchema, db: Sessi
     if not cmd:
         raise HTTPException(status_code=400, detail="Command cannot be empty")
 
-    res = run_remote_command(server, cmd)
+    res = run_remote_command(server, cmd, use_sudo=data.use_sudo)
     return res

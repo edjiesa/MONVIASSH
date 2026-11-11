@@ -17,6 +17,19 @@ def get_db():
     finally:
         db.close()
 
+from sqlalchemy import text
+
 def init_db():
     from app import models
     Base.metadata.create_all(bind=engine)
+
+    # Auto-migration for SQLite database
+    with engine.connect() as conn:
+        try:
+            result = conn.execute(text("PRAGMA table_info(servers);")).fetchall()
+            existing_cols = [row[1] for row in result]
+            if "sudo_password_encrypted" not in existing_cols:
+                conn.execute(text("ALTER TABLE servers ADD COLUMN sudo_password_encrypted TEXT;"))
+                conn.commit()
+        except Exception:
+            pass
